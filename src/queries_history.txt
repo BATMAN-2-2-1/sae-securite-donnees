@@ -1,0 +1,415 @@
+CREATE TABLE Physician (
+  EmployeeID INTEGER PRIMARY KEY,
+  Name TEXT NOT NULL,
+  Position TEXT NOT NULL,
+  SSN INTEGER NOT NULL
+);
+
+CREATE TABLE Department (
+  DepartmentID INTEGER PRIMARY KEY,
+  Name TEXT NOT NULL,
+  Head INTEGER NOT NULL,
+  CONSTRAINT fk_department_head FOREIGN KEY (Head) REFERENCES Physician(EmployeeID)
+);
+
+CREATE TABLE Affiliated_With (
+  Physician INTEGER NOT NULL,
+  Department INTEGER NOT NULL,
+  PrimaryAffiliation BOOLEAN NOT NULL,
+  PRIMARY KEY(Physician, Department),
+  CONSTRAINT fk_affiliated_physician FOREIGN KEY (Physician) REFERENCES Physician(EmployeeID),
+  CONSTRAINT fk_affiliated_department FOREIGN KEY (Department) REFERENCES Department(DepartmentID)
+);
+
+CREATE TABLE MedicalProcedure (
+  Code INTEGER PRIMARY KEY,
+  Name TEXT NOT NULL,
+  Cost REAL NOT NULL
+);
+
+CREATE TABLE Trained_In (
+  Physician INTEGER NOT NULL,
+  Treatment INTEGER NOT NULL,
+  CertificationDate TIMESTAMP NOT NULL,
+  CertificationExpires TIMESTAMP NOT NULL,
+  PRIMARY KEY(Physician, Treatment),
+  CONSTRAINT fk_trained_physician FOREIGN KEY (Physician) REFERENCES Physician(EmployeeID),
+  CONSTRAINT fk_trained_treatment FOREIGN KEY (Treatment) REFERENCES MedicalProcedure(Code)
+);
+
+CREATE TABLE Patient (
+  SSN INTEGER PRIMARY KEY,
+  Name TEXT NOT NULL,
+  Address TEXT NOT NULL,
+  Phone TEXT NOT NULL,
+  InsuranceID INTEGER NOT NULL,
+  PCP INTEGER NOT NULL,
+  CONSTRAINT fk_patient_pcp FOREIGN KEY (PCP) REFERENCES Physician(EmployeeID)
+);
+
+CREATE TABLE Nurse (
+  EmployeeID INTEGER PRIMARY KEY,
+  Name TEXT NOT NULL,
+  Position TEXT NOT NULL,
+  Registered BOOLEAN NOT NULL,
+  SSN INTEGER NOT NULL
+);
+
+CREATE TABLE Appointment (
+  AppointmentID INTEGER PRIMARY KEY,
+  Patient INTEGER NOT NULL,
+  PrepNurse INTEGER,
+  Physician INTEGER NOT NULL,
+  Start TIMESTAMP NOT NULL,
+  "End" TIMESTAMP NOT NULL,
+  ExaminationRoom TEXT NOT NULL,
+  CONSTRAINT fk_appt_patient FOREIGN KEY (Patient) REFERENCES Patient(SSN),
+  CONSTRAINT fk_appt_nurse FOREIGN KEY (PrepNurse) REFERENCES Nurse(EmployeeID),
+  CONSTRAINT fk_appt_physician FOREIGN KEY (Physician) REFERENCES Physician(EmployeeID)
+);
+
+CREATE TABLE Medication (
+  Code INTEGER PRIMARY KEY,
+  Name TEXT NOT NULL,
+  Brand TEXT NOT NULL,
+  Description TEXT NOT NULL
+);
+
+CREATE TABLE Prescribes (
+  Physician INTEGER NOT NULL,
+  Patient INTEGER NOT NULL,
+  Medication INTEGER NOT NULL,
+  Date TIMESTAMP NOT NULL,
+  Appointment INTEGER,
+  Dose TEXT NOT NULL,
+  PRIMARY KEY(Physician, Patient, Medication, Date),
+  CONSTRAINT fk_prescribes_physician FOREIGN KEY (Physician) REFERENCES Physician(EmployeeID),
+  CONSTRAINT fk_prescribes_patient FOREIGN KEY (Patient) REFERENCES Patient(SSN),
+  CONSTRAINT fk_prescribes_medication FOREIGN KEY (Medication) REFERENCES Medication(Code),
+  CONSTRAINT fk_prescribes_appt FOREIGN KEY (Appointment) REFERENCES Appointment(AppointmentID)
+);
+
+CREATE TABLE Block (
+  Floor INTEGER NOT NULL,
+  Code INTEGER NOT NULL,
+  PRIMARY KEY(Floor, Code)
+);
+
+CREATE TABLE Room (
+  Number INTEGER PRIMARY KEY,
+  Type TEXT NOT NULL,
+  BlockFloor INTEGER NOT NULL,
+  BlockCode INTEGER NOT NULL,
+  Unavailable BOOLEAN NOT NULL,
+  CONSTRAINT fk_room_block FOREIGN KEY (BlockFloor, BlockCode) REFERENCES Block(Floor, Code)
+);
+
+CREATE TABLE On_Call (
+  Nurse INTEGER NOT NULL,
+  BlockFloor INTEGER NOT NULL,
+  BlockCode INTEGER NOT NULL,
+  Start TIMESTAMP NOT NULL,
+  "End" TIMESTAMP NOT NULL,
+  PRIMARY KEY(Nurse, BlockFloor, BlockCode, Start, "End"),
+  CONSTRAINT fk_oncall_nurse FOREIGN KEY (Nurse) REFERENCES Nurse(EmployeeID),
+  CONSTRAINT fk_oncall_block FOREIGN KEY (BlockFloor, BlockCode) REFERENCES Block(Floor, Code)
+);
+
+CREATE TABLE Stay (
+  StayID INTEGER PRIMARY KEY,
+  Patient INTEGER NOT NULL,
+  Room INTEGER NOT NULL,
+  Start TIMESTAMP NOT NULL,
+  "End" TIMESTAMP NOT NULL,
+  CONSTRAINT fk_stay_patient FOREIGN KEY (Patient) REFERENCES Patient(SSN),
+  CONSTRAINT fk_stay_room FOREIGN KEY (Room) REFERENCES Room(Number)
+);
+
+CREATE TABLE Undergoes (
+  Patient INTEGER NOT NULL,
+  Procedure INTEGER NOT NULL,
+  Stay INTEGER NOT NULL,
+  Date TIMESTAMP NOT NULL,
+  Physician INTEGER NOT NULL,
+  AssistingNurse INTEGER,
+  PRIMARY KEY(Patient, Procedure, Stay, Date),
+  CONSTRAINT fk_undergoes_patient FOREIGN KEY (Patient) REFERENCES Patient(SSN),
+  CONSTRAINT fk_undergoes_procedure FOREIGN KEY (Procedure) REFERENCES MedicalProcedure(Code),
+  CONSTRAINT fk_undergoes_stay FOREIGN KEY (Stay) REFERENCES Stay(StayID),
+  CONSTRAINT fk_undergoes_physician FOREIGN KEY (Physician) REFERENCES Physician(EmployeeID),
+  CONSTRAINT fk_undergoes_nurse FOREIGN KEY (AssistingNurse) REFERENCES Nurse(EmployeeID)
+);
+
+
+2) insertion des données
+
+INSERT INTO Physician VALUES
+(1,'John Dorian','Staff Internist',111111111),
+(2,'Elliot Reid','Attending Physician',222222222),
+(3,'Christopher Turk','Surgical Attending Physician',333333333),
+(4,'Percival Cox','Senior Attending Physician',444444444),
+(5,'Bob Kelso','Head Chief of Medicine',555555555),
+(6,'Todd Quinlan','Surgical Attending Physician',666666666),
+(7,'John Wen','Surgical Attending Physician',777777777),
+(8,'Keith Dudemeister','MD Resident',888888888),
+(9,'Molly Clock','Attending Psychiatrist',999999999);
+
+INSERT INTO Department VALUES
+(1,'General Medicine',4),
+(2,'Surgery',7),
+(3,'Psychiatry',9);
+
+INSERT INTO Affiliated_With VALUES
+(1,1,true),
+(2,1,true),
+(3,1,false),
+(3,2,true),
+(4,1,true),
+(5,1,true),
+(6,2,true),
+(7,1,false),
+(7,2,true),
+(8,1,true),
+(9,3,true);
+
+INSERT INTO MedicalProcedure VALUES
+(1,'Reverse Rhinopodoplasty',1500.0),
+(2,'Obtuse Pyloric Recombobulation',3750.0),
+(3,'Folded Demiophtalmectomy',4500.0),
+(4,'Complete Walletectomy',10000.0),
+(5,'Obfuscated Dermogastrotomy',4899.0),
+(6,'Reversible Pancreomyoplasty',5600.0),
+(7,'Follicular Demiectomy',25.0);
+
+INSERT INTO Patient VALUES
+(100000001,'John Smith','42 Foobar Lane','555-0256',68476213,1),
+(100000002,'Grace Ritchie','37 Snafu Drive','555-0512',36546321,2),
+(100000003,'Random J. Patient','101 Omgbbq Street','555-1204',65465421,2),
+(100000004,'Dennis Doe','1100 Foobaz Avenue','555-2048',68421879,3);
+
+INSERT INTO Nurse VALUES
+(101,'Carla Espinosa','Head Nurse',true,111111110),
+(102,'Laverne Roberts','Nurse',true,222222220),
+(103,'Paul Flowers','Nurse',false,333333330);
+
+INSERT INTO Appointment VALUES
+(13216584,100000001,101,1,'2008-04-24 10:00','2008-04-24 11:00','A'),
+(26548913,100000002,101,2,'2008-04-24 10:00','2008-04-24 11:00','B'),
+(36549879,100000001,102,1,'2008-04-25 10:00','2008-04-25 11:00','A'),
+(46846589,100000004,103,4,'2008-04-25 10:00','2008-04-25 11:00','B'),
+(59871321,100000004,NULL,4,'2008-04-26 10:00','2008-04-26 11:00','C'),
+(69879231,100000003,103,2,'2008-04-26 11:00','2008-04-26 12:00','C'),
+(76983231,100000001,NULL,3,'2008-04-26 12:00','2008-04-26 13:00','C'),
+(86213939,100000004,102,9,'2008-04-27 10:00','2008-04-21 11:00','A'),
+(93216548,100000002,101,2,'2008-04-27 10:00','2008-04-27 11:00','B');
+
+INSERT INTO Medication VALUES
+(1,'Procrastin-X','X','N/A'),
+(2,'Thesisin','Foo Labs','N/A'),
+(3,'Awakin','Bar Laboratories','N/A'),
+(4,'Crescavitin','Baz Industries','N/A'),
+(5,'Melioraurin','Snafu Pharmaceuticals','N/A');
+
+INSERT INTO Prescribes VALUES
+(1,100000001,1,'2008-04-24 10:47',13216584,'5'),
+(9,100000004,2,'2008-04-27 10:53',86213939,'10'),
+(9,100000004,2,'2008-04-30 16:53',NULL,'5');
+
+INSERT INTO Block VALUES
+(1,1),(1,2),(1,3),
+(2,1),(2,2),(2,3),
+(3,1),(3,2),(3,3),
+(4,1),(4,2),(4,3);
+
+INSERT INTO Room VALUES
+(101,'Single',1,1,false),
+(102,'Single',1,1,false),
+(103,'Single',1,1,false),
+(111,'Single',1,2,false),
+(112,'Single',1,2,true),
+(113,'Single',1,2,false),
+(121,'Single',1,3,false),
+(122,'Single',1,3,false),
+(123,'Single',1,3,false),
+(201,'Single',2,1,true),
+(202,'Single',2,1,false),
+(203,'Single',2,1,false),
+(211,'Single',2,2,false),
+(212,'Single',2,2,false),
+(213,'Single',2,2,true),
+(221,'Single',2,3,false),
+(222,'Single',2,3,false),
+(223,'Single',2,3,false),
+(301,'Single',3,1,false),
+(302,'Single',3,1,true),
+(303,'Single',3,1,false),
+(311,'Single',3,2,false),
+(312,'Single',3,2,false),
+(313,'Single',3,2,false),
+(321,'Single',3,3,true),
+(322,'Single',3,3,false),
+(323,'Single',3,3,false),
+(401,'Single',4,1,false),
+(402,'Single',4,1,true),
+(403,'Single',4,1,false),
+(411,'Single',4,2,false),
+(412,'Single',4,2,false),
+(413,'Single',4,2,false),
+(421,'Single',4,3,true),
+(422,'Single',4,3,false),
+(423,'Single',4,3,false);
+
+INSERT INTO On_Call VALUES
+(101,1,1,'2008-11-04 11:00','2008-11-04 19:00'),
+(101,1,2,'2008-11-04 11:00','2008-11-04 19:00'),
+(102,1,3,'2008-11-04 11:00','2008-11-04 19:00'),
+(103,1,1,'2008-11-04 19:00','2008-11-05 03:00'),
+(103,1,2,'2008-11-04 19:00','2008-11-05 03:00'),
+(103,1,3,'2008-11-04 19:00','2008-11-05 03:00');
+
+INSERT INTO Stay VALUES
+(3215,100000001,111,'2008-05-01','2008-05-04'),
+(3216,100000003,123,'2008-05-03','2008-05-14'),
+(3217,100000004,112,'2008-05-02','2008-05-03');
+
+INSERT INTO Undergoes VALUES
+(100000001,6,3215,'2008-05-02',3,101),
+(100000001,2,3215,'2008-05-03',7,101),
+(100000004,1,3217,'2008-05-07',3,102),
+(100000004,5,3217,'2008-05-09',6,NULL),
+(100000001,7,3217,'2008-05-10',7,101),
+(100000004,4,3217,'2008-05-13',3,103);
+
+INSERT INTO Trained_In VALUES
+(3,1,'2008-01-01','2008-12-31'),
+(3,2,'2008-01-01','2008-12-31'),
+(3,5,'2008-01-01','2008-12-31'),
+(3,6,'2008-01-01','2008-12-31'),
+(3,7,'2008-01-01','2008-12-31'),
+(6,2,'2008-01-01','2008-12-31'),
+(6,5,'2007-01-01','2007-12-31'),
+(6,6,'2008-01-01','2008-12-31'),
+(7,1,'2008-01-01','2008-12-31'),
+(7,2,'2008-01-01','2008-12-31'),
+(7,3,'2008-01-01','2008-12-31'),
+(7,4,'2008-01-01','2008-12-31'),
+(7,5,'2008-01-01','2008-12-31'),
+(7,6,'2008-01-01','2008-12-31'),
+(7,7,'2008-01-01','2008-12-31');
+
+
+
+3)
+a)Création des utilisateurs
+CREATE USER user_admin PASSWORD 'admin123';
+CREATE USER user_medecin PASSWORD 'med123';
+CREATE USER user_infirmier PASSWORD 'nurse123';
+CREATE USER user_secretaire PASSWORD 'sec123';
+CREATE USER user_chercheur PASSWORD 'res123';
+
+b)Création des rôles
+CREATE ROLE admin;
+CREATE ROLE medecin;
+CREATE ROLE infirmier;
+CREATE ROLE secretaire;
+CREATE ROLE chercheur;
+
+d)Attribution des rôles aux utilisateurs
+GRANT admin TO user_admin;
+GRANT medecin TO user_medecin;
+GRANT infirmier TO user_infirmier;
+GRANT secretaire TO user_secretaire;
+GRANT chercheur TO user_chercheur;
+
+e)Hiérarchie des rôles
+GRANT infirmier TO medecin;
+GRANT secretaire TO admin;
+GRANT medecin TO admin;
+GRANT chercheur TO admin;
+
+f)Attribution des privilèges aux rôles
+Admin
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO admin;
+
+Médecin
+GRANT SELECT, INSERT ON Patient TO infirmier;
+GRANT SELECT, INSERT ON On_Call TO infirmier;
+GRANT SELECT, INSERT ON Stay TO infirmier;
+
+Secrétaire
+GRANT SELECT, INSERT ON Patient TO secretaire;
+GRANT SELECT, INSERT ON Appointment TO secretaire;
+GRANT SELECT ON Physician TO secretaire;
+
+Chercheur
+GRANT SELECT ON Undergoes TO chercheur;
+GRANT SELECT ON MedicalProcedure TO chercheur;
+GRANT SELECT ON Stay TO chercheur;
+
+Au départ, on avait donné au rôle chercheur un accès direct aux tables Undergoes, MedicalProcedure et Stay. Mais on s’est rendu compte que cela permettait de retrouver des données sensibles comme les identifiants de patients. On a donc retiré ces droits avec REVOKE, et on a préféré créer des vues anonymisées pour sécuriser l’accès
+
+Alors:
+
+REVOKE SELECT ON Undergoes FROM chercheur;
+REVOKE SELECT ON MedicalProcedure FROM chercheur;
+REVOKE SELECT ON Stay FROM chercheur;
+
+
+Création des vues anonymisées
+-- Vue sans données perso pour les chercheurs
+CREATE VIEW vw_undergoes_anonymized AS
+SELECT
+  u.Procedure,
+  u.Stay,
+  u.Date,
+  u.Physician,
+  u.AssistingNurse,
+  mp.Name AS ProcedureName,
+  mp.Cost,
+  s.Room,
+  s.Start AS StayStart,
+  s."End" AS StayEnd
+FROM Undergoes u
+JOIN MedicalProcedure mp ON u.Procedure = mp.Code
+JOIN Stay s ON u.Stay = s.StayID;
+
+-- Vue avec quelques stats sur les séjours
+CREATE VIEW vw_stay_stats AS
+SELECT
+  Room,
+  COUNT(*) AS NbStays,
+  ROUND(AVG(EXTRACT(EPOCH FROM ("End" - Start)) / 86400), 1) AS AvgStayDays
+FROM Stay
+GROUP BY Room;
+
+
+chercheur
+CREATE VIEW vw_undergoes_anonymized AS
+SELECT
+  u.Procedure,
+  u.Stay,
+  u.Date,
+  u.Physician,
+  u.AssistingNurse,
+  mp.Name AS ProcedureName,
+  mp.Cost,
+  s.Room,
+  s.Start AS StayStart,
+  s."End" AS StayEnd
+FROM Undergoes u
+JOIN MedicalProcedure mp ON u.Procedure = mp.Code
+JOIN Stay s ON u.Stay = s.StayID;
+
+-- Vue avec quelques stats sur les séjours
+CREATE VIEW vw_stay_stats AS
+SELECT
+  Room,
+  COUNT(*) AS NbStays,
+  ROUND(AVG(EXTRACT(EPOCH FROM ("End" - Start)) / 86400), 1) AS AvgStayDays
+FROM Stay
+GROUP BY Room;
+
+
+GRANT SELECT ON vw_undergoes_anonymized TO chercheur;
+GRANT SELECT ON vw_stay_stats TO chercheur;
+
